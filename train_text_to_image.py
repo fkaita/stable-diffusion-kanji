@@ -51,6 +51,8 @@ from diffusers.utils.hub_utils import load_or_create_model_card, populate_model_
 from diffusers.utils.import_utils import is_xformers_available
 from diffusers.utils.torch_utils import is_compiled_module
 
+import json
+
 
 if is_wandb_available():
     import wandb
@@ -499,6 +501,12 @@ def parse_args():
             " more information see https://huggingface.co/docs/accelerate/v0.17.0/en/package_reference/accelerator#accelerate.Accelerator"
         ),
     )
+    parser.add_argument(
+        "--from_scratch",
+        action="store_true",
+        help="Whether to fine-tune the model. If set, the model will be trained from scratch.",
+        default=False,
+    )
 
     args = parser.parse_args()
     env_local_rank = int(os.environ.get("LOCAL_RANK", -1))
@@ -612,9 +620,19 @@ def main():
             args.pretrained_model_name_or_path, subfolder="vae", revision=args.revision, variant=args.variant
         )
 
-    unet = UNet2DConditionModel.from_pretrained(
-        args.pretrained_model_name_or_path, subfolder="unet", revision=args.non_ema_revision
-    )
+    if not args.from_scratch:
+        unet = UNet2DConditionModel.from_pretrained(
+            args.pretrained_model_name_or_path, subfolder="unet", revision=args.non_ema_revision
+        )
+    else:
+        # unet_config = UNet2DConditionModel.load_config(
+        #     args.pretrained_model_name_or_path, subfolder="unet", revision=args.non_ema_revision
+        # )
+        # Load config from the JSON file
+        config_path = "unet_config.json"
+        with open(config_path, "r") as f:
+            unet_config = json.load(f)
+        unet = UNet2DConditionModel.from_config(unet_config)
 
     # Freeze vae and text_encoder and set unet to trainable
     vae.requires_grad_(False)

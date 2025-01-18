@@ -6,7 +6,6 @@ name = "pypi"
 [packages]
 ace-tools = "*"
 pandas = "*"
-cairosvg = "*"
 svgwrite = "*"
 pillow = "*"
 diffusers = "*"
